@@ -60,6 +60,9 @@ class InitialTables:
             print(f"An error occurred: {e}")
 
 class InitializeData:
+    """
+    A class to handle the creation of initial data for the tables in database.
+    """
 
     def create_initial_data(self, db_connection):
         self.users(db_connection)
@@ -102,6 +105,7 @@ class InitializeData:
             db_connection.commit()
         except Exception as e:
             print(f"An error occurred while adding likes: {e}")
+
 
 class InitialUsers:
     users = [
