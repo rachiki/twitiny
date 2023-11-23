@@ -22,12 +22,12 @@ def get_db():
         db.close()
 
 @app.get("/")
-def index(request: Request, db: Session = Depends(get_db)): # auto error gets thrown if connection fails
-    return templates.TemplateResponse("login.html", 
+def entry_point(request: Request, db: Session = Depends(get_db)): # auto error gets thrown if connection fails
+    return templates.TemplateResponse("entry.html", 
                                       {"request": request})
 
 @app.get("/register")
-def index(request: Request, db: Session = Depends(get_db)): 
+def register(request: Request, db: Session = Depends(get_db)): 
     return templates.TemplateResponse("register.html", 
                                       {"request": request})
 
@@ -39,12 +39,14 @@ def create_user(username: str = Form(...), password: str = Form(...), email: str
     # Check if the username already exists
     existing_user = db.query(data_models.User).filter(data_models.User.username == new_user.username).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Username already taken")
+        return RedirectResponse(url="/register_success")
+        #raise HTTPException(status_code=400, detail="Username already taken")
     
     # Check if the email already exists
     existing_mail = db.query(data_models.User).filter(data_models.User.email == new_user.email).first()
     if existing_mail:
-        raise HTTPException(status_code=400, detail="E-Mail already registered")
+        return RedirectResponse(url="/register_success")
+        #raise HTTPException(status_code=400, detail="E-Mail already registered")
 
     db.add(new_user)
     db.commit()
@@ -54,3 +56,8 @@ def create_user(username: str = Form(...), password: str = Form(...), email: str
 def register_success(request: Request, db: Session = Depends(get_db)): 
     return templates.TemplateResponse("register_success.html", 
                                       {"request": request})
+
+@app.get("/register_fail")
+def register_fail(error: str, request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("register_fail.html",
+                                      {"request": request, "error": error})
