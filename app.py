@@ -30,43 +30,53 @@ def entry_point(request: Request, db: Session = Depends(get_db)): # auto error g
     return templates.TemplateResponse("entry.html", 
                                       {"request": request})
 
+# The next functions are for login
+@app.get("/login")
+def login(username: str = Form(""), password: str = Form(), db: Session = Depends(get_db)): 
+    pass
+
+
+## The next functions are for registration/user creation
 @app.get("/register")
 def register(request: Request, db: Session = Depends(get_db)): 
-    return templates.TemplateResponse("register.html", 
+    return templates.TemplateResponse("register.html",                
                                       {"request": request})
 
+MIN_USERNAME_LENGTH = 3
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 @app.post("/create_user")
-def create_user(username: str = Form(""), password: str = Form((""),), email: str = Form((""),),
-                 db: Session = Depends(get_db)):
-    new_user = data_models.User(username=username, password=password, email=email)
+def create_user(username: str = Form(""), password: str = Form(""), email: str = Form(""), db: Session = Depends(get_db)):
+    error_message = validate_user_data(username, email, db)
+    if error_message:
+        return redirect_to_error(error_message)
 
-    MIN_USERNAME_LENGTH = 3
-    # Check if the username is long enough
-    if len(new_user.username) < MIN_USERNAME_LENGTH:
-        error_message = "Username too short."
-        return RedirectResponse(url=f"/register_fail?error_message={quote(error_message)}", status_code=303)
-    
-    # Validate the email
-    email_regex = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-    if not email_regex.match(new_user.email):
-        error_message = "Invalid E-Mail."
-        return RedirectResponse(url=f"/register_fail?error_message={quote(error_message)}", status_code=303)
-
-    # Check if the username already exists
-    existing_user = db.query(data_models.User).filter(data_models.User.username == new_user.username).first()
-    if existing_user:
-        error_message = "Username already taken."
-        return RedirectResponse(url=f"/register_fail?error_message={quote(error_message)}", status_code=303)
-    
-    # Check if the email already exists
-    existing_mail = db.query(data_models.User).filter(data_models.User.email == new_user.email).first()
-    if existing_mail:
-        error_message = "E-Mail already registered."
-        return RedirectResponse(url=f"/register_fail?error_message={quote(error_message)}", status_code=303)
-
+    hashed_password = hash_password(password)  # Assuming a hash_password function exists
+    new_user = data_models.User(username=username, password=hashed_password, email=email)
     db.add(new_user)
     db.commit()
     return RedirectResponse(url="/register_success", status_code=303)
+
+def validate_user_data(username, email, db):
+    if len(username) < MIN_USERNAME_LENGTH:
+        return "Username too short."
+
+    if not EMAIL_REGEX.match(email):
+        return "Invalid E-Mail."
+
+    if db.query(data_models.User).filter(data_models.User.username == username).first():
+        return "Username already taken."
+
+    if db.query(data_models.User).filter(data_models.User.email == email).first():
+        return "E-Mail already registered."
+
+    return None
+
+def redirect_to_error(message):
+    return RedirectResponse(url=f"/register_fail?error_message={quote(message)}", status_code=303)
+
+def hash_password(password):
+    # Implement password hashing here
+    pass
 
 @app.get("/register_success")
 def register_success(request: Request): 
