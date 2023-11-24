@@ -30,10 +30,22 @@ def entry_point(request: Request, db: Session = Depends(get_db)): # auto error g
     return templates.TemplateResponse("entry.html", 
                                       {"request": request})
 
-# The next functions are for login
-@app.get("/login")
-def login(username: str = Form(""), password: str = Form(), db: Session = Depends(get_db)): 
-    pass
+## The next functions are for login
+@app.post("/login")
+def login(username: str = Form(""), password: str = Form(), db: Session = Depends(get_db)):
+    user = db.query(data_models.User).filter(data_models.User.username == username).first()
+    if user and user.password == password: 
+        return RedirectResponse(url="/user_homepage", status_code=status.HTTP_302_FOUND)
+    else:
+        # Redirect to an error page if username not found or password is wrong
+        return RedirectResponse(url="/login_fail", status_code=status.HTTP_302_FOUND)
+
+@app.get("/login_fail")
+def login_fail(request: Request): 
+    return templates.TemplateResponse("login_fail.html", 
+                                      {"request": request})
+
+## The next functions are for the user homepage
 
 
 ## The next functions are for registration/user creation
@@ -50,7 +62,7 @@ def create_user(username: str = Form(""), password: str = Form(""), email: str =
     if error_message:
         return redirect_to_error(error_message)
 
-    hashed_password = hash_password(password)  # Assuming a hash_password function exists
+    hashed_password = hash_password(password)  # NOTE: This is not implemented yet
     new_user = data_models.User(username=username, password=hashed_password, email=email)
     db.add(new_user)
     db.commit()
@@ -75,11 +87,10 @@ def redirect_to_error(message):
     return RedirectResponse(url=f"/register_fail?error_message={quote(message)}", status_code=303)
 
 def hash_password(password):
-    # Implement password hashing here
-    pass
+    return password # TODO: Implement hashing
 
 @app.get("/register_success")
-def register_success(request: Request): 
+def login_fail(request: Request): 
     return templates.TemplateResponse("register_success.html", 
                                       {"request": request})
 
